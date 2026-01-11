@@ -70,7 +70,7 @@ export function FloatingAddButton({
                   animation: `slideUp 0.2s ease-out ${index * 0.05}s both`
                 }}
               >
-                <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
+                <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
                   {eventConfig[type].label}
                 </span>
                 <div className={`w-14 h-14 rounded-full ${eventConfig[type].color} border-2 shadow-lg flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-transform`}>
@@ -87,7 +87,7 @@ export function FloatingAddButton({
                 animation: `slideUp 0.2s ease-out ${QUICK_ADD_TYPES.length * 0.05}s both`
               }}
             >
-              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
+              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
                 {isBreastfeedingTimerRunning ? 'View Timer' : 'Start Feeding'}
               </span>
               <div className={`w-14 h-14 rounded-full ${eventConfig.breastfeeding.color} border-2 shadow-lg flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-transform relative`}>
@@ -106,7 +106,7 @@ export function FloatingAddButton({
                 animation: `slideUp 0.2s ease-out ${(QUICK_ADD_TYPES.length + 1) * 0.05}s both`
               }}
             >
-              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
+              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
                 {isSleepTimerRunning ? 'View Sleep' : 'Start Sleep'}
               </span>
               <div className={`w-14 h-14 rounded-full ${eventConfig.sleep.color} border-2 shadow-lg flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-transform relative`}>
@@ -125,7 +125,7 @@ export function FloatingAddButton({
                 animation: `slideUp 0.2s ease-out ${(QUICK_ADD_TYPES.length + 2) * 0.05}s both`
               }}
             >
-              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
+              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
                 {isPumpingTimerRunning ? 'View Pumping' : 'Start Pumping'}
               </span>
               <div className={`w-14 h-14 rounded-full ${eventConfig.pumping.color} border-2 shadow-lg flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-transform relative`}>
@@ -147,7 +147,7 @@ export function FloatingAddButton({
                 animation: `slideUp 0.2s ease-out ${(QUICK_ADD_TYPES.length + 3) * 0.05}s both`
               }}
             >
-              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
+              <span className="bg-card-solid px-3 py-1.5 rounded-lg shadow-md text-sm font-medium text-ink opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity whitespace-nowrap border border-line">
                 More options...
               </span>
               <div className="w-14 h-14 rounded-full bg-muted border-2 border-line shadow-lg flex items-center justify-center text-xl hover:scale-110 active:scale-95 transition-transform">

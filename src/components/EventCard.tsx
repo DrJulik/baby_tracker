@@ -168,7 +168,7 @@ export function EventCard({ event, index, onDelete }: EventCardProps) {
         </div>
         <button
           onClick={() => onDelete(event.id)}
-          className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-ink-soft hover:text-red-500 transition-all duration-200 cursor-pointer"
+          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-ink-soft hover:text-red-500 transition-all duration-200 cursor-pointer"
           aria-label="Delete event"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
