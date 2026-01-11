@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Crimson Pro", Georgia, serif;
+  
+  /* Surface/background colors */
+  --color-surface: #FFF8F0;
+  --color-surface-alt: #FFF5EB;
+  --color-surface-deep: #FFE8D6;
+  --color-card: rgba(255, 255, 255, 0.7);
+  --color-card-solid: #FFFCFA;
+  --color-muted: #F9F5F0;
+  --color-hover: #F0E8E0;
+  
+  /* Border colors */
+  --color-line: #E8D5C4;
+  --color-line-soft: rgba(232, 213, 196, 0.5);
+  
+  /* Text colors */
+  --color-ink: #5D4E3A;
+  --color-ink-soft: #8B7355;
+  --color-ink-faint: #C4A77D;
+  
+  /* Accent colors */
+  --color-accent: #FF9A56;
+  --color-accent-bold: #FF6B35;
+  --color-accent-soft: #FFDAB3;
+  --color-accent-muted: #FFB366;
+}
+
+/* Dark mode overrides */
+.dark {
+  --color-surface: #1a1612;
+  --color-surface-alt: #231e19;
+  --color-surface-deep: #2d261f;
+  --color-card: rgba(45, 38, 31, 0.8);
+  --color-card-solid: #2d261f;
+  --color-muted: #352e26;
+  --color-hover: #3d342b;
+  
+  --color-line: #4a3f33;
+  --color-line-soft: rgba(74, 63, 51, 0.5);
+  
+  --color-ink: #F5EDE6;
+  --color-ink-soft: #C4A77D;
+  --color-ink-faint: #8B7355;
+  
+  --color-accent-soft: #5c3d1e;
+  --color-accent-muted: #7a4a22;
+}
+
+/* Custom Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Custom utilities using @layer so they work with Tailwind */
+@layer utilities {
+  .animate-fade-in {
+    opacity: 1;
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    opacity: 1;
+    transform: translateY(0);
+    animation: slide-up 0.4s ease-out forwards;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Base styles */
+@layer base {
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-faint);
+  }
+
+  ::selection {
+    background: #FFD4B8;
+    color: var(--color-ink);
+  }
+
+  .dark ::selection {
+    background: #7a4a22;
+  }
+
+  button:focus-visible,
+  textarea:focus-visible,
+  input:focus-visible {
+    outline: 2px solid #FFB366;
+    outline-offset: 2px;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
