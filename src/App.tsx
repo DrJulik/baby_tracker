@@ -20,6 +20,7 @@ import {
   PumpingMiniTimer,
   StatsView,
 } from './components'
+import { InstallPrompt } from './components/InstallPrompt'
 import type { ViewMode } from './components'
 
 function App() {
@@ -264,6 +265,9 @@ function App() {
         }}
         onClose={() => setIsPumpingTimerOpen(false)}
       />
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
     </div>
   )
 }
