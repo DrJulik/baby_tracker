@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { EventType, BreastSide, FeedingRound, PumpingRound } from '../types'
+import { useState, useEffect } from 'react'
+import type { BabyEvent, EventType, BreastSide, FeedingRound, PumpingRound } from '../types'
 import { eventConfig, EVENT_TYPES } from '../types'
 import { getLocalDateTimeString } from '../utils/formatters'
 
@@ -12,15 +12,19 @@ const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
 }
 
+type AddEventOptions = { duration?: number; side?: BreastSide; rounds?: FeedingRound[]; amount?: number; pumpingRounds?: PumpingRound[] }
+
 interface AddEventModalProps {
   isOpen: boolean
   onClose: () => void
+  editingEvent?: BabyEvent | null
   onAddEvent: (
-    type: EventType, 
-    timestamp: Date, 
+    type: EventType,
+    timestamp: Date,
     notes?: string,
-    options?: { duration?: number; side?: BreastSide; rounds?: FeedingRound[]; amount?: number; pumpingRounds?: PumpingRound[] }
+    options?: AddEventOptions
   ) => void
+  onEditEvent?: (id: string, timestamp: Date, notes?: string, options?: AddEventOptions) => void
 }
 
 interface RoundInput {
@@ -35,7 +39,22 @@ interface PumpingInput {
   amount: number
 }
 
-export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProps) {
+function resetFormState() {
+  return {
+    selectedType: null as EventType | null,
+    notes: '',
+    useCustomTime: false,
+    customDateTime: '',
+    sleepHours: 0,
+    sleepMinutes: 0,
+    bottleAmount: 0,
+    rounds: [{ id: generateId(), side: 'left' as const, minutes: 0 }],
+    pumpingInputs: [{ id: generateId(), side: 'left' as const, amount: 0 }],
+    pumpingDuration: 0,
+  }
+}
+
+export function AddEventModal({ isOpen, onClose, editingEvent = null, onAddEvent, onEditEvent }: AddEventModalProps) {
   const [selectedType, setSelectedType] = useState<EventType | null>(null)
   const [notes, setNotes] = useState('')
   const [useCustomTime, setUseCustomTime] = useState(false)
@@ -58,6 +77,52 @@ export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProp
     { id: generateId(), side: 'left', amount: 0 }
   ])
   const [pumpingDuration, setPumpingDuration] = useState(0) // in minutes
+
+  // Initialize or reset form when modal opens (add vs edit)
+  useEffect(() => {
+    if (!isOpen) return
+    if (editingEvent) {
+      setSelectedType(editingEvent.type)
+      setNotes(editingEvent.notes ?? '')
+      setUseCustomTime(true)
+      setCustomDateTime(getLocalDateTimeString(editingEvent.timestamp))
+      const duration = editingEvent.duration ?? 0
+      setSleepHours(Math.floor(duration / 3600))
+      setSleepMinutes(Math.floor((duration % 3600) / 60))
+      setBottleAmount(editingEvent.amount ?? 0)
+      setPumpingDuration(editingEvent.duration ? Math.floor(editingEvent.duration / 60) : 0)
+      if (editingEvent.rounds && editingEvent.rounds.length > 0) {
+        setRounds(editingEvent.rounds.map((r, i) => ({
+          id: `round-${i}`,
+          side: r.side,
+          minutes: Math.floor(r.duration / 60),
+        })))
+      } else {
+        setRounds([{ id: generateId(), side: 'left', minutes: 0 }])
+      }
+      if (editingEvent.pumpingRounds && editingEvent.pumpingRounds.length > 0) {
+        setPumpingInputs(editingEvent.pumpingRounds.map((p, i) => ({
+          id: `pump-${i}`,
+          side: p.side,
+          amount: p.amount,
+        })))
+      } else {
+        setPumpingInputs([{ id: generateId(), side: 'left', amount: 0 }])
+      }
+    } else {
+      const reset = resetFormState()
+      setSelectedType(reset.selectedType)
+      setNotes(reset.notes)
+      setUseCustomTime(reset.useCustomTime)
+      setCustomDateTime(reset.customDateTime)
+      setSleepHours(reset.sleepHours)
+      setSleepMinutes(reset.sleepMinutes)
+      setBottleAmount(reset.bottleAmount)
+      setRounds(reset.rounds)
+      setPumpingInputs(reset.pumpingInputs)
+      setPumpingDuration(reset.pumpingDuration)
+    }
+  }, [isOpen, editingEvent])
 
   const isBreastfeeding = selectedType === 'breastfeeding'
   const isBottle = selectedType === 'bottle'
@@ -123,69 +188,63 @@ export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProp
       ? new Date(customDateTime) 
       : new Date()
     
+    const doAdd = (opts?: AddEventOptions) => {
+      onAddEvent(selectedType, eventTime, notes || undefined, opts)
+    }
+    const doEdit = (opts?: AddEventOptions) => {
+      if (editingEvent && onEditEvent) {
+        onEditEvent(editingEvent.id, eventTime, notes || undefined, opts)
+      }
+    }
+    const apply = editingEvent && onEditEvent ? doEdit : doAdd
+
     if (isBreastfeeding) {
-      // Filter out rounds with 0 duration
       const validRounds = rounds.filter(r => r.minutes > 0)
-      
       if (validRounds.length > 0) {
         const feedingRounds: FeedingRound[] = validRounds.map(r => ({
           side: r.side,
-          duration: r.minutes * 60 // Convert to seconds
+          duration: r.minutes * 60
         }))
-        
         const totalDuration = feedingRounds.reduce((sum, r) => sum + r.duration, 0)
         const lastSide = feedingRounds[feedingRounds.length - 1].side
-        
-        onAddEvent(selectedType, eventTime, notes || undefined, {
-          duration: totalDuration,
-          side: lastSide,
-          rounds: feedingRounds
-        })
+        apply({ duration: totalDuration, side: lastSide, rounds: feedingRounds })
       } else {
-        onAddEvent(selectedType, eventTime, notes || undefined)
+        apply()
       }
     } else if (isSleep) {
       const totalDurationSeconds = (sleepHours * 3600) + (sleepMinutes * 60)
-      
       if (totalDurationSeconds > 0) {
-        onAddEvent(selectedType, eventTime, notes || undefined, {
-          duration: totalDurationSeconds
-        })
+        apply({ duration: totalDurationSeconds })
       } else {
-        onAddEvent(selectedType, eventTime, notes || undefined)
+        apply()
       }
     } else if (isBottle) {
       if (bottleAmount > 0) {
-        onAddEvent(selectedType, eventTime, notes || undefined, {
-          amount: bottleAmount
-        })
+        apply({ amount: bottleAmount })
       } else {
-        onAddEvent(selectedType, eventTime, notes || undefined)
+        apply()
       }
     } else if (isPumping) {
       const validPumpingInputs = pumpingInputs.filter(p => p.amount > 0)
-      
       if (validPumpingInputs.length > 0) {
         const pumpingRounds: PumpingRound[] = validPumpingInputs.map(p => ({
           side: p.side,
           amount: p.amount
         }))
-        
         const totalAmount = pumpingRounds.reduce((sum, r) => sum + r.amount, 0)
         const lastSide = pumpingRounds[pumpingRounds.length - 1].side
         const durationSeconds = pumpingDuration * 60
-        
-        onAddEvent(selectedType, eventTime, notes || undefined, {
+        apply({
           duration: durationSeconds > 0 ? durationSeconds : undefined,
           amount: totalAmount,
           side: lastSide,
           pumpingRounds
         })
       } else {
-        onAddEvent(selectedType, eventTime, notes || undefined)
+        apply()
       }
     } else {
-      onAddEvent(selectedType, eventTime, notes || undefined)
+      apply()
     }
     
     handleClose()
@@ -208,7 +267,7 @@ export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProp
       <div className="relative w-full max-h-[90vh] overflow-y-auto bg-card-solid rounded-t-3xl sm:rounded-3xl p-6 pb-8 shadow-2xl animate-slide-up border-t border-line sm:border transition-colors duration-300">
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-serif text-xl font-semibold text-ink">
-            Log Event
+            {editingEvent ? 'Edit Event' : 'Log Event'}
           </h2>
           <button
             onClick={handleClose}
@@ -218,25 +277,36 @@ export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProp
           </button>
         </div>
 
-        {/* Event Type Selection */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {EVENT_TYPES.map(type => (
-            <button
-              key={type}
-              onClick={() => setSelectedType(type)}
-              className={`p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
-                selectedType === type
-                  ? `${eventConfig[type].color} border-current scale-[0.98]`
-                  : 'bg-muted border-transparent hover:border-line'
-              }`}
-            >
-              <div className="text-3xl mb-2">{eventConfig[type].emoji}</div>
-              <div className={`font-medium text-sm ${selectedType === type ? '' : 'text-ink'}`}>
-                {eventConfig[type].label}
-              </div>
-            </button>
-          ))}
-        </div>
+        {/* Event Type Selection (hidden in edit mode) */}
+        {!editingEvent && (
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {EVENT_TYPES.map(type => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
+                  selectedType === type
+                    ? `${eventConfig[type].color} border-current scale-[0.98]`
+                    : 'bg-muted border-transparent hover:border-line'
+                }`}
+              >
+                <div className="text-3xl mb-2">{eventConfig[type].emoji}</div>
+                <div className={`font-medium text-sm ${selectedType === type ? '' : 'text-ink'}`}>
+                  {eventConfig[type].label}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {/* In edit mode show fixed type label */}
+        {editingEvent && selectedType && (
+          <div className="mb-6">
+            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border ${eventConfig[selectedType].color}`}>
+              <span className="text-2xl">{eventConfig[selectedType].emoji}</span>
+              <span className="font-medium text-sm">{eventConfig[selectedType].label}</span>
+            </span>
+          </div>
+        )}
 
         {/* When did it happen */}
         <div className="mb-6">
@@ -560,7 +630,11 @@ export function AddEventModal({ isOpen, onClose, onAddEvent }: AddEventModalProp
               : 'bg-muted text-ink-soft cursor-not-allowed'
           }`}
         >
-          {selectedType ? `Log ${eventConfig[selectedType].label}` : 'Select an event type'}
+          {editingEvent
+            ? 'Save changes'
+            : selectedType
+              ? `Log ${eventConfig[selectedType].label}`
+              : 'Select an event type'}
         </button>
       </div>
     </div>

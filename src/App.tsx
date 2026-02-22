@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { EventType } from './types'
+import type { BabyEvent, EventType } from './types'
 import { useEvents } from './hooks/useEvents'
 import { useTheme } from './hooks/useTheme'
 import { useBreastfeedingTimer } from './hooks/useBreastfeedingTimer'
@@ -31,6 +31,7 @@ function App() {
     addSleepEvent,
     addPumpingEvent,
     deleteEvent, 
+    updateEvent,
     getLastEventByType,
     getLastBreastfeedingSide,
     getLastPumpingSide,
@@ -41,7 +42,7 @@ function App() {
   const pumpingTimer = usePumpingTimer()
   
   const [activeView, setActiveView] = useState<ViewMode>('log')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalState, setModalState] = useState<null | 'add' | { edit: BabyEvent }>(null)
   const [isBreastfeedingTimerOpen, setIsBreastfeedingTimerOpen] = useState(false)
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false)
   const [isPumpingTimerOpen, setIsPumpingTimerOpen] = useState(false)
@@ -139,6 +140,7 @@ function App() {
               events={dateFilteredEvents}
               filteredEvents={filteredEvents}
               onDeleteEvent={deleteEvent}
+              onEditEvent={(event) => setModalState({ edit: event })}
             />
           </div>
           {events.length > 0 && (
@@ -193,7 +195,7 @@ function App() {
       {activeView === 'log' && (
         <FloatingAddButton 
           onQuickAdd={(type) => addEvent(type, new Date())}
-          onOpenModal={() => setIsModalOpen(true)}
+          onOpenModal={() => setModalState('add')}
           onOpenBreastfeedingTimer={() => setIsBreastfeedingTimerOpen(true)}
           onOpenSleepTimer={() => setIsSleepTimerOpen(true)}
           onOpenPumpingTimer={() => setIsPumpingTimerOpen(true)}
@@ -204,9 +206,13 @@ function App() {
       )}
 
       <AddEventModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={modalState !== null}
+        editingEvent={modalState && modalState !== 'add' ? modalState.edit : null}
+        onClose={() => setModalState(null)}
         onAddEvent={addEvent}
+        onEditEvent={(id, timestamp, notes, options) =>
+          updateEvent(id, { timestamp, notes, ...options })
+        }
       />
 
       <BreastfeedingTimer

@@ -6,9 +6,10 @@ interface EventListProps {
   events: BabyEvent[]
   filteredEvents: BabyEvent[]
   onDeleteEvent: (id: string) => void
+  onEditEvent?: (event: BabyEvent) => void
 }
 
-export function EventList({ events, filteredEvents, onDeleteEvent }: EventListProps) {
+export function EventList({ events, filteredEvents, onDeleteEvent, onEditEvent }: EventListProps) {
   // Group events by date
   const groupedEvents = filteredEvents.reduce((groups, event) => {
     const dateKey = event.timestamp.toDateString()
@@ -55,6 +56,7 @@ export function EventList({ events, filteredEvents, onDeleteEvent }: EventListPr
                 event={event}
                 index={index}
                 onDelete={onDeleteEvent}
+                onEdit={onEditEvent}
               />
             ))}
           </div>

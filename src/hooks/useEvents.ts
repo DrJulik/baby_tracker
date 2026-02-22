@@ -81,6 +81,18 @@ export function useEvents() {
     setEvents(prev => prev.filter(e => e.id !== id))
   }
 
+  const updateEvent = (
+    id: string,
+    updates: Partial<Omit<BabyEvent, 'id' | 'type'>>
+  ) => {
+    setEvents(prev => {
+      const updated = prev.map(e =>
+        e.id === id ? { ...e, ...updates } : e
+      )
+      return updated.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    })
+  }
+
   const getLastEventByType = (type: EventType): BabyEvent | undefined => {
     return events.find(e => e.type === type)
   }
@@ -107,6 +119,7 @@ export function useEvents() {
     addSleepEvent,
     addPumpingEvent,
     deleteEvent,
+    updateEvent,
     getLastEventByType,
     getTodayCountByType,
     getLastBreastfeedingSide,
