@@ -156,7 +156,7 @@ function App() {
         </main>
       ) : (
         <main className="flex-1 overflow-y-auto scrollbar-hide mx-auto px-5 pt-6 w-full">
-          <StatsView events={events} />
+          <StatsView events={events} selectedDate={selectedDate} />
         </main>
       )}
 

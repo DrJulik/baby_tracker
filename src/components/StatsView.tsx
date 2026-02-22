@@ -3,6 +3,7 @@ import { eventConfig, EVENT_TYPES } from '../types'
 
 interface StatsViewProps {
   events: BabyEvent[]
+  selectedDate: Date | null
 }
 
 function formatDurationMMSS(seconds: number): string {
@@ -26,20 +27,29 @@ function formatHour(hour: number): string {
   return hour < 12 ? `${hour}am` : `${hour - 12}pm`
 }
 
-export function StatsView({ events }: StatsViewProps) {
+export function StatsView({ events, selectedDate }: StatsViewProps) {
   const today = new Date()
-  const todayStr = today.toDateString()
-  
-  // Get last 7 days
+  const focusDate = selectedDate ?? today
+  const focusDateStr = focusDate.toDateString()
+  const isFocusToday = focusDateStr === today.toDateString()
+
+  // 7-day window ending on focus date (for charts and insights)
+  const windowStart = new Date(focusDate)
+  windowStart.setDate(windowStart.getDate() - 6)
+  windowStart.setHours(0, 0, 0, 0)
+  const windowEnd = new Date(focusDate)
+  windowEnd.setHours(23, 59, 59, 999)
+
+  // Last 7 days ending on focus date
   const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(today)
+    const date = new Date(focusDate)
     date.setDate(date.getDate() - (6 - i))
     return date
   })
 
-  // Today's counts by type
+  // Counts for the selected/focus date
   const todayCounts = EVENT_TYPES.reduce((acc, type) => {
-    acc[type] = events.filter(e => e.type === type && e.timestamp.toDateString() === todayStr).length
+    acc[type] = events.filter(e => e.type === type && e.timestamp.toDateString() === focusDateStr).length
     return acc
   }, {} as Record<EventType, number>)
 
@@ -60,8 +70,12 @@ export function StatsView({ events }: StatsViewProps) {
 
   const maxDailyTotal = Math.max(...weeklyData.map(d => d.total), 1)
 
-  // Breastfeeding stats
-  const breastfeedingEvents = events.filter(e => e.type === 'breastfeeding' && e.duration)
+  // Breastfeeding stats (in 7-day window)
+  const breastfeedingEvents = events.filter(e => {
+    if (e.type !== 'breastfeeding' || !e.duration) return false
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
+  })
   const avgFeedingDuration = breastfeedingEvents.length > 0
     ? Math.round(breastfeedingEvents.reduce((sum, e) => sum + (e.duration || 0), 0) / breastfeedingEvents.length)
     : 0
@@ -77,11 +91,11 @@ export function StatsView({ events }: StatsViewProps) {
     ? (feedingIntervals.reduce((a, b) => a + b, 0) / feedingIntervals.length).toFixed(1)
     : null
 
-  // Activity by hour of day (last 7 days)
+  // Activity by hour of day (7 days ending on focus date)
   const hourlyActivity = Array(24).fill(0)
   const last7DaysEvents = events.filter(e => {
-    const daysAgo = (today.getTime() - e.timestamp.getTime()) / (1000 * 60 * 60 * 24)
-    return daysAgo <= 7
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
   })
   last7DaysEvents.forEach(e => {
     hourlyActivity[e.timestamp.getHours()]++
@@ -91,24 +105,36 @@ export function StatsView({ events }: StatsViewProps) {
   // Find peak hours
   const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity))
 
-  // Side preference (for breastfeeding)
-  const leftCount = events.filter(e => e.type === 'breastfeeding' && e.side === 'left').length
-  const rightCount = events.filter(e => e.type === 'breastfeeding' && e.side === 'right').length
+  // Side preference (for breastfeeding, in 7-day window)
+  const leftCount = events.filter(e => {
+    if (e.type !== 'breastfeeding' || e.side !== 'left') return false
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
+  }).length
+  const rightCount = events.filter(e => {
+    if (e.type !== 'breastfeeding' || e.side !== 'right') return false
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
+  }).length
   const totalSided = leftCount + rightCount
 
   // Sleep stats
   const sleepEvents = events.filter(e => e.type === 'sleep' && e.duration)
-  const todaySleepEvents = sleepEvents.filter(e => e.timestamp.toDateString() === todayStr)
+  const todaySleepEvents = sleepEvents.filter(e => e.timestamp.toDateString() === focusDateStr)
   const totalSleepToday = todaySleepEvents.reduce((sum, e) => sum + (e.duration || 0), 0)
-  
-  const avgSleepDuration = sleepEvents.length > 0
-    ? Math.round(sleepEvents.reduce((sum, e) => sum + (e.duration || 0), 0) / sleepEvents.length)
+
+  const sleepInWindow = sleepEvents.filter(e => {
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
+  })
+  const avgSleepDuration = sleepInWindow.length > 0
+    ? Math.round(sleepInWindow.reduce((sum, e) => sum + (e.duration || 0), 0) / sleepInWindow.length)
     : 0
 
-  // Longest sleep stretch (last 7 days)
+  // Longest sleep stretch (7 days ending on focus date)
   const recentSleepEvents = sleepEvents.filter(e => {
-    const daysAgo = (today.getTime() - e.timestamp.getTime()) / (1000 * 60 * 60 * 24)
-    return daysAgo <= 7
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
   })
   const longestSleep = recentSleepEvents.length > 0
     ? Math.max(...recentSleepEvents.map(e => e.duration || 0))
@@ -116,20 +142,24 @@ export function StatsView({ events }: StatsViewProps) {
 
   // Pumping stats
   const pumpingEvents = events.filter(e => e.type === 'pumping' && e.amount)
-  const todayPumpingEvents = pumpingEvents.filter(e => e.timestamp.toDateString() === todayStr)
+  const todayPumpingEvents = pumpingEvents.filter(e => e.timestamp.toDateString() === focusDateStr)
   const totalPumpedToday = todayPumpingEvents.reduce((sum, e) => sum + (e.amount || 0), 0)
-  
-  const avgPumpingAmount = pumpingEvents.length > 0
-    ? Math.round(pumpingEvents.reduce((sum, e) => sum + (e.amount || 0), 0) / pumpingEvents.length)
+
+  const pumpingInWindow = pumpingEvents.filter(e => {
+    const t = e.timestamp.getTime()
+    return t >= windowStart.getTime() && t <= windowEnd.getTime()
+  })
+  const avgPumpingAmount = pumpingInWindow.length > 0
+    ? Math.round(pumpingInWindow.reduce((sum, e) => sum + (e.amount || 0), 0) / pumpingInWindow.length)
     : 0
 
-  // Pumping side preference
-  const pumpingLeftAmount = events.filter(e => e.type === 'pumping' && e.pumpingRounds)
+  // Pumping side preference (7-day window)
+  const pumpingLeftAmount = events.filter(e => e.type === 'pumping' && e.pumpingRounds && e.timestamp.getTime() >= windowStart.getTime() && e.timestamp.getTime() <= windowEnd.getTime())
     .reduce((sum, e) => {
       const leftRounds = (e.pumpingRounds || []).filter(r => r.side === 'left')
       return sum + leftRounds.reduce((s, r) => s + r.amount, 0)
     }, 0)
-  const pumpingRightAmount = events.filter(e => e.type === 'pumping' && e.pumpingRounds)
+  const pumpingRightAmount = events.filter(e => e.type === 'pumping' && e.pumpingRounds && e.timestamp.getTime() >= windowStart.getTime() && e.timestamp.getTime() <= windowEnd.getTime())
     .reduce((sum, e) => {
       const rightRounds = (e.pumpingRounds || []).filter(r => r.side === 'right')
       return sum + rightRounds.reduce((s, r) => s + r.amount, 0)
@@ -150,10 +180,10 @@ export function StatsView({ events }: StatsViewProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
-      {/* Today's Summary */}
+      {/* Day summary */}
       <section>
         <h2 className="font-serif text-sm font-medium text-ink-soft mb-3 uppercase tracking-wider">
-          Today's Summary
+          {isFocusToday ? "Today's Summary" : `${focusDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} Summary`}
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {EVENT_TYPES.map(type => (
@@ -176,7 +206,7 @@ export function StatsView({ events }: StatsViewProps) {
       {/* Weekly Chart */}
       <section>
         <h2 className="font-serif text-sm font-medium text-ink-soft mb-3 uppercase tracking-wider">
-          Last 7 Days
+          Last 7 Days {!isFocusToday && `(through ${focusDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
         </h2>
         <div className="bg-card rounded-2xl p-4 border border-line-soft">
           <div className="flex items-end justify-between gap-2 h-32">
@@ -256,7 +286,7 @@ export function StatsView({ events }: StatsViewProps) {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-2xl p-4 border border-line-soft">
-              <div className="text-sm text-ink-soft mb-1">Today's Sleep</div>
+              <div className="text-sm text-ink-soft mb-1">{isFocusToday ? "Today's Sleep" : 'Sleep'}</div>
               <div className="text-2xl font-bold text-ink">
                 {formatDurationHHMM(totalSleepToday)}
               </div>
@@ -272,7 +302,7 @@ export function StatsView({ events }: StatsViewProps) {
             </div>
             {longestSleep > 0 && (
               <div className="bg-card rounded-2xl p-4 border border-line-soft col-span-2">
-                <div className="text-sm text-ink-soft mb-1">Longest Stretch (7 days)</div>
+                <div className="text-sm text-ink-soft mb-1">Longest stretch (7 days)</div>
                 <div className="text-2xl font-bold text-ink flex items-center gap-2">
                   <span>🏆</span>
                   {formatDurationHHMM(longestSleep)}
@@ -291,7 +321,7 @@ export function StatsView({ events }: StatsViewProps) {
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-card rounded-2xl p-4 border border-line-soft">
-              <div className="text-sm text-ink-soft mb-1">Today's Total</div>
+              <div className="text-sm text-ink-soft mb-1">{isFocusToday ? "Today's Total" : 'Total pumped'}</div>
               <div className="text-2xl font-bold text-ink">
                 {totalPumpedToday} ml
               </div>
