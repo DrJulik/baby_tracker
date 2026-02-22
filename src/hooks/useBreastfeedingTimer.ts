@@ -54,13 +54,13 @@ export function useBreastfeedingTimer() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  // Timer tick
+  // Timer tick: compute elapsed from currentRoundStart so time stays correct when app is backgrounded (e.g. phone locked)
   useEffect(() => {
     if (state.isRunning && !state.isPaused) {
       intervalRef.current = window.setInterval(() => {
         setState(prev => ({
           ...prev,
-          currentRoundElapsed: prev.currentRoundElapsed + 1,
+          currentRoundElapsed: Math.floor((Date.now() - prev.currentRoundStart) / 1000),
         }))
       }, 1000)
     } else {
@@ -93,26 +93,31 @@ export function useBreastfeedingTimer() {
   }, [])
 
   const pause = useCallback(() => {
-    setState(prev => ({ ...prev, isPaused: true }))
+    setState(prev => ({
+      ...prev,
+      isPaused: true,
+      currentRoundElapsed: Math.floor((Date.now() - prev.currentRoundStart) / 1000),
+    }))
   }, [])
 
   const resume = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       isPaused: false,
-      currentRoundStart: Date.now(),
+      currentRoundStart: Date.now() - prev.currentRoundElapsed * 1000,
     }))
   }, [])
 
   const switchSide = useCallback(() => {
     setState(prev => {
-      // Complete current round and start a new one
+      const currentElapsed = prev.isPaused
+        ? prev.currentRoundElapsed
+        : Math.floor((Date.now() - prev.currentRoundStart) / 1000)
       const completedRound: FeedingRound = {
         side: prev.side,
-        duration: prev.currentRoundElapsed,
+        duration: currentElapsed,
       }
       const newSide: BreastSide = prev.side === 'left' ? 'right' : 'left'
-      
       return {
         ...prev,
         side: newSide,
@@ -124,20 +129,25 @@ export function useBreastfeedingTimer() {
   }, [])
 
   const stop = useCallback(() => {
-    // Complete the current round
+    const currentElapsed =
+      state.isPaused
+        ? state.currentRoundElapsed
+        : Math.floor((Date.now() - state.currentRoundStart) / 1000)
     const finalRound: FeedingRound = {
       side: state.side,
-      duration: state.currentRoundElapsed,
+      duration: currentElapsed,
     }
     const allRounds = [...state.rounds, finalRound].filter(r => r.duration > 0)
-    
+    const totalDuration =
+      state.rounds.reduce((sum, r) => sum + r.duration, 0) + currentElapsed
+
     const result = {
-      duration: totalElapsedSeconds,
+      duration: totalDuration,
       side: state.side, // last side used
       startTime: state.startTime,
       rounds: allRounds,
     }
-    
+
     setState({
       isRunning: false,
       isPaused: false,
@@ -149,7 +159,7 @@ export function useBreastfeedingTimer() {
     })
     localStorage.removeItem(STORAGE_KEY)
     return result
-  }, [state.side, state.currentRoundElapsed, state.rounds, state.startTime, totalElapsedSeconds])
+  }, [state.side, state.currentRoundElapsed, state.rounds, state.startTime])
 
   const cancel = useCallback(() => {
     setState({
