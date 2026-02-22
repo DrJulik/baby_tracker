@@ -162,7 +162,7 @@ export function EventCard({ event, index, onRequestDelete, onEdit }: EventCardPr
           )}
           
           {event.notes && (
-            <p className="text-sm text-ink-soft mt-1 truncate">
+            <p className="text-sm text-ink-soft mt-1 whitespace-pre-wrap wrap-break-word">
               {event.notes}
             </p>
           )}
