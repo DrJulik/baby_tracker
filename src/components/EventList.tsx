@@ -5,11 +5,11 @@ import { EventCard } from './EventCard'
 interface EventListProps {
   events: BabyEvent[]
   filteredEvents: BabyEvent[]
-  onDeleteEvent: (id: string) => void
+  onRequestDelete: (event: BabyEvent) => void
   onEditEvent?: (event: BabyEvent) => void
 }
 
-export function EventList({ events, filteredEvents, onDeleteEvent, onEditEvent }: EventListProps) {
+export function EventList({ events, filteredEvents, onRequestDelete, onEditEvent }: EventListProps) {
   // Group events by date
   const groupedEvents = filteredEvents.reduce((groups, event) => {
     const dateKey = event.timestamp.toDateString()
@@ -55,7 +55,7 @@ export function EventList({ events, filteredEvents, onDeleteEvent, onEditEvent }
                 key={event.id}
                 event={event}
                 index={index}
-                onDelete={onDeleteEvent}
+                onRequestDelete={onRequestDelete}
                 onEdit={onEditEvent}
               />
             ))}

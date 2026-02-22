@@ -11,6 +11,7 @@ import {
   TimeSinceCards,
   EventList,
   AddEventModal,
+  DeleteConfirmModal,
   FloatingAddButton,
   BreastfeedingTimer,
   MiniTimer,
@@ -43,6 +44,7 @@ function App() {
   
   const [activeView, setActiveView] = useState<ViewMode>('log')
   const [modalState, setModalState] = useState<null | 'add' | { edit: BabyEvent }>(null)
+  const [eventToDelete, setEventToDelete] = useState<BabyEvent | null>(null)
   const [isBreastfeedingTimerOpen, setIsBreastfeedingTimerOpen] = useState(false)
   const [isSleepTimerOpen, setIsSleepTimerOpen] = useState(false)
   const [isPumpingTimerOpen, setIsPumpingTimerOpen] = useState(false)
@@ -139,7 +141,7 @@ function App() {
             <EventList
               events={dateFilteredEvents}
               filteredEvents={filteredEvents}
-              onDeleteEvent={deleteEvent}
+              onRequestDelete={(event) => setEventToDelete(event)}
               onEditEvent={(event) => setModalState({ edit: event })}
             />
           </div>
@@ -213,6 +215,17 @@ function App() {
         onEditEvent={(id, timestamp, notes, options) =>
           updateEvent(id, { timestamp, notes, ...options })
         }
+      />
+
+      <DeleteConfirmModal
+        event={eventToDelete}
+        onConfirm={() => {
+          if (eventToDelete) {
+            deleteEvent(eventToDelete.id)
+            setEventToDelete(null)
+          }
+        }}
+        onCancel={() => setEventToDelete(null)}
       />
 
       <BreastfeedingTimer

@@ -5,7 +5,7 @@ import { formatTime } from '../utils/formatters'
 interface EventCardProps {
   event: BabyEvent
   index: number
-  onDelete: (id: string) => void
+  onRequestDelete: (event: BabyEvent) => void
   onEdit?: (event: BabyEvent) => void
 }
 
@@ -44,7 +44,7 @@ function aggregatePumpingBySide(rounds: PumpingRound[]): { left: number; right: 
   )
 }
 
-export function EventCard({ event, index, onDelete, onEdit }: EventCardProps) {
+export function EventCard({ event, index, onRequestDelete, onEdit }: EventCardProps) {
   const isBreastfeeding = event.type === 'breastfeeding'
   const isBottle = event.type === 'bottle'
   const isSleep = event.type === 'sleep'
@@ -180,7 +180,7 @@ export function EventCard({ event, index, onDelete, onEdit }: EventCardProps) {
             </button>
           )}
           <button
-            onClick={() => onDelete(event.id)}
+            onClick={() => onRequestDelete(event)}
             className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-ink-soft hover:text-red-500 transition-all duration-200 cursor-pointer"
             aria-label="Delete event"
           >
