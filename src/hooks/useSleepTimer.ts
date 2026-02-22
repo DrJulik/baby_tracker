@@ -43,15 +43,15 @@ export function useSleepTimer() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  // Timer tick
+  // Timer tick: compute elapsed from startTime so time stays correct when app is backgrounded (e.g. phone locked)
   useEffect(() => {
-    if (state.isRunning) {
+    if (state.isRunning && state.startTime) {
       intervalRef.current = window.setInterval(() => {
-        if (state.startTime) {
-          const now = new Date()
-          const elapsed = Math.floor((now.getTime() - state.startTime.getTime()) / 1000)
-          setState(prev => ({ ...prev, elapsedSeconds: elapsed }))
-        }
+        setState(prev =>
+          prev.startTime
+            ? { ...prev, elapsedSeconds: Math.floor((Date.now() - prev.startTime.getTime()) / 1000) }
+            : prev
+        )
       }, 1000)
     } else {
       if (intervalRef.current) {
@@ -77,8 +77,12 @@ export function useSleepTimer() {
   }, [])
 
   const stop = useCallback(() => {
+    const duration =
+      state.startTime
+        ? Math.floor((Date.now() - state.startTime.getTime()) / 1000)
+        : state.elapsedSeconds
     const result = {
-      duration: state.elapsedSeconds,
+      duration,
       startTime: state.startTime,
     }
     setState({

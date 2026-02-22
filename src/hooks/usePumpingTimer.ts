@@ -56,13 +56,13 @@ export function usePumpingTimer() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
-  // Timer tick
+  // Timer tick: compute elapsed from startTime so time stays correct when app is backgrounded (e.g. phone locked)
   useEffect(() => {
-    if (state.isRunning && !state.isPaused) {
+    if (state.isRunning && !state.isPaused && state.startTime) {
       intervalRef.current = window.setInterval(() => {
         setState(prev => ({
           ...prev,
-          elapsedSeconds: prev.elapsedSeconds + 1,
+          elapsedSeconds: Math.floor((Date.now() - prev.startTime!.getTime()) / 1000),
           lastTickTime: Date.now(),
         }))
       }, 1000)
@@ -78,7 +78,7 @@ export function usePumpingTimer() {
         clearInterval(intervalRef.current)
       }
     }
-  }, [state.isRunning, state.isPaused])
+  }, [state.isRunning, state.isPaused, state.startTime])
 
   const start = useCallback((side: BreastSide) => {
     setState({
@@ -94,13 +94,20 @@ export function usePumpingTimer() {
   }, [])
 
   const pause = useCallback(() => {
-    setState(prev => ({ ...prev, isPaused: true }))
+    setState(prev => ({
+      ...prev,
+      isPaused: true,
+      elapsedSeconds: prev.startTime
+        ? Math.floor((Date.now() - prev.startTime.getTime()) / 1000)
+        : prev.elapsedSeconds,
+    }))
   }, [])
 
   const resume = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       isPaused: false,
+      startTime: new Date(Date.now() - prev.elapsedSeconds * 1000),
       lastTickTime: Date.now(),
     }))
   }, [])
@@ -120,6 +127,10 @@ export function usePumpingTimer() {
   }, [])
 
   const stop = useCallback(() => {
+    const currentElapsed =
+      state.startTime && !state.isPaused
+        ? Math.floor((Date.now() - state.startTime.getTime()) / 1000)
+        : state.elapsedSeconds
     const rounds: PumpingRound[] = []
     if (state.leftAmount > 0) {
       rounds.push({ side: 'left', amount: state.leftAmount })
@@ -127,17 +138,17 @@ export function usePumpingTimer() {
     if (state.rightAmount > 0) {
       rounds.push({ side: 'right', amount: state.rightAmount })
     }
-    
+
     const totalAmount = state.leftAmount + state.rightAmount
-    
+
     const result = {
-      duration: state.elapsedSeconds,
+      duration: currentElapsed,
       amount: totalAmount,
       startTime: state.startTime,
       rounds,
       side: state.side, // last side used
     }
-    
+
     setState({
       isRunning: false,
       isPaused: false,
@@ -150,7 +161,7 @@ export function usePumpingTimer() {
     })
     localStorage.removeItem(STORAGE_KEY)
     return result
-  }, [state.elapsedSeconds, state.leftAmount, state.rightAmount, state.startTime, state.side])
+  }, [state.elapsedSeconds, state.leftAmount, state.rightAmount, state.startTime, state.side, state.isPaused])
 
   const cancel = useCallback(() => {
     setState({
