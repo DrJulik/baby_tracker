@@ -23,11 +23,14 @@ export function useBreastfeedingTimer() {
       if (parsed.isRunning && parsed.currentRoundStart && !parsed.isPaused) {
         const now = Date.now()
         const additionalSeconds = Math.floor((now - parsed.currentRoundStart) / 1000)
+        const currentRoundElapsed = (parsed.currentRoundElapsed || 0) + additionalSeconds
+        // Set currentRoundStart in the past so the tick (Date.now() - currentRoundStart) shows correct elapsed
+        const currentRoundStart = now - currentRoundElapsed * 1000
         return {
           ...parsed,
           startTime: parsed.startTime ? new Date(parsed.startTime) : null,
-          currentRoundElapsed: (parsed.currentRoundElapsed || 0) + additionalSeconds,
-          currentRoundStart: now,
+          currentRoundElapsed,
+          currentRoundStart,
         }
       }
       return { 
